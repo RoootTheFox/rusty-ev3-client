@@ -1,18 +1,18 @@
-mod utils;
+//mod utils;
 
 extern crate ev3dev_lang_rust;
 
-use std::collections::HashMap;
+//use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
 use std::str::FromStr;
-use std::sync::Mutex;
+//use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
 use ev3dev_lang_rust::{Ev3Button};
 use scoped_threadpool::Pool;
-use crate::utils::PcConnection;
+//use crate::utils::PcConnection;
 
-const INCOMING_PREFIX:&str = "pc2ev-";
+//const INCOMING_PREFIX:&str = "pc2ev-";
 const OUTGOING_PREFIX:&str = "ev2pc-";
 
 fn main() {
@@ -23,7 +23,7 @@ fn main() {
     let target = &SocketAddr::from_str("192.168.0.2:6969").unwrap();
     let mut pool = Pool::new(4);
 
-    let mut socket = UdpSocket::bind(listen).expect("Couldn't bind to address");
+    let socket = UdpSocket::bind(listen).expect("Couldn't bind to address");
 
     pool.scoped(|scope| {
         scope.execute(|| socket_thread(&socket)); // this thread is responsible for receiving messages
@@ -48,7 +48,7 @@ fn socket_thread(socket:&UdpSocket) {
         let (amount, src) = socket.recv_from(&mut buf).expect("Couldn't receive data");
         //println!("Received {} bytes", amount - 1);
         let message = String::from_utf8_lossy(&buf[..amount-1]); // -1 to cut off the \n
-        //println!("Received message from {}: {}", src, message);
+        println!("Received message from {}: {}", src, message);
     }
 }
 

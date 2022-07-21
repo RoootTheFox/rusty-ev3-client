@@ -16,4 +16,5 @@ image = "0.24"
 
 [profile.release]
 lto = true
+codegen-units = 1
 strip = "debuginfo"
