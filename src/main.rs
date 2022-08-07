@@ -151,59 +151,25 @@ fn keepalive_thread(socket:&UdpSocket, connection:&Mutex<PcConnection>, target:&
 fn input_thread(socket:&UdpSocket, target:&SocketAddr) {
     let button = Ev3Button::new().unwrap();
 
-    let mut up = false;
-    let mut down = false;
-    let mut left = false;
-    let mut right = false;
     let mut enter = false;
-    let mut back = false;
+    let mut ignore_enter = false;
 
     loop {
         button.process();
 
-        if up != button.is_up() {
-            if button.is_up() {
-                println!("never gonna give you UP");
-                send_to_pc(&socket, target, "media?volup");
-            }
-        }
-        if down != button.is_down() {
-            if button.is_down() {
-                println!("never gonna let you DOWN");
-                send_to_pc(&socket, target, "media?voldown");
-            }
-        }
-        if left != button.is_left() {
-            if button.is_left() {
-                println!("left");
-                send_to_pc(&socket, target, "media?prev");
-            }
-        }
-        if right != button.is_right() {
-            if button.is_right() {
-                println!("right");
-                send_to_pc(&socket, target, "media?next");
-            }
-        }
-        if enter != button.is_enter() {
-            if button.is_enter() {
-                println!("enter");
-                send_to_pc(&socket, target, "media?pp");
-            }
-        }
-        if back != button.is_backspace() {
-            if button.is_backspace() {
-                println!("Back");
-                send_to_pc(&socket, target, "media?veryfunnyandhilariousmessagethatdefinitelydoesnotshutdownthewholefuckingsystemlmao");
-            }
+        if button.is_enter() && !ignore_enter {
+            ignore_enter = true;
+            println!("Enter pressed");
+            set_leds(true, true, "orange");
+            send_to_pc(&socket, target, "kd");
+        } else if !button.is_enter() && !enter && ignore_enter {
+            println!("Enter released");
+            set_leds(true, true, "off");
+            send_to_pc(&socket, target, "ku");
+            ignore_enter = false;
         }
 
-        up = button.is_up();
-        down = button.is_down();
-        left = button.is_left();
-        right = button.is_right();
         enter = button.is_enter();
-        back = button.is_backspace();
     }
 }
 
