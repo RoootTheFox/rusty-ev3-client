@@ -16,10 +16,11 @@ const INCOMING_PREFIX:&str = "pc2ev-";
 const OUTGOING_PREFIX:&str = "ev2pc-";
 
 fn main() {
+    set_leds(true, true, "yellow");
     let connection:Mutex<PcConnection> = Mutex::new(PcConnection { connected: false, last_seen: 0 });
 
     let listen = "0.0.0.0:42069";
-    let target = &SocketAddr::from_str("192.168.0.2:6969").unwrap();
+    let target = &SocketAddr::from_str("192.168.178.69:6969").unwrap();
     let mut pool = Pool::new(4);
 
     let socket = UdpSocket::bind(listen).expect("Couldn't bind to address");
@@ -126,6 +127,7 @@ fn keepalive_thread(socket:&UdpSocket, connection:&Mutex<PcConnection>, target:&
             no_response_count = 0;
             if now - connection.last_seen > 5 {
                 connection.connected = false;
+                set_leds(true, true, "amber");
                 println!("Disconnected!");
                 // try reconnecting
                 sleep(Duration::from_secs(3));
@@ -135,9 +137,9 @@ fn keepalive_thread(socket:&UdpSocket, connection:&Mutex<PcConnection>, target:&
                 send_to_pc(&socket, target, "keepalive");
             }
         } else {
-            println!("not connected lmao");
             no_response_count += 1;
             if no_response_count > 5 {
+                set_leds(true, true, "red");
                 println!("Failed to connect!");
                 exit(1);
             }
