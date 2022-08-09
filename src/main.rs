@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 use ev3dev_lang_rust::{Ev3Button, Led};
+use ev3dev_lang_rust::sensors::{InfraredSensor, RemoteControl, SensorPort, TouchSensor};
 use scoped_threadpool::Pool;
 use crate::utils::PcConnection;
 
@@ -151,25 +152,58 @@ fn keepalive_thread(socket:&UdpSocket, connection:&Mutex<PcConnection>, target:&
 fn input_thread(socket:&UdpSocket, target:&SocketAddr) {
     let button = Ev3Button::new().unwrap();
 
-    let mut enter = false;
+    let touch_sensor = TouchSensor::get(SensorPort::In1).unwrap();
+
+    let infrared_sensor = InfraredSensor::get(SensorPort::In2).unwrap();
+    let remote = RemoteControl::new(infrared_sensor, 1).unwrap();
+
+    let mut ignore_touch = false;
     let mut ignore_enter = false;
+    let mut ignore_remote = false;
 
     loop {
         button.process();
+        remote.process().unwrap();
 
-        if button.is_enter() && !ignore_enter {
-            ignore_enter = true;
-            println!("Enter pressed");
+        let touch_state = touch_sensor.get_pressed_state().unwrap();
+        let enter_state = button.is_enter();
+        let remote_red_up_state = remote.is_red_up();
+
+        if touch_state && !ignore_touch {
+            ignore_touch = true;
+            println!("down: touch");
             set_leds(true, true, "orange");
             send_to_pc(&socket, target, "kd");
-        } else if !button.is_enter() && !enter && ignore_enter {
-            println!("Enter released");
+        } else if !touch_state && ignore_touch {
+            println!("up: touch");
+            set_leds(true, true, "off");
+            send_to_pc(&socket, target, "ku");
+            ignore_touch = false;
+        }
+
+        if enter_state && !ignore_enter {
+            ignore_enter = true;
+            println!("down: enter");
+            set_leds(true, true, "orange");
+            send_to_pc(&socket, target, "kd");
+        } else if !enter_state && ignore_enter {
+            println!("up: enter");
             set_leds(true, true, "off");
             send_to_pc(&socket, target, "ku");
             ignore_enter = false;
         }
 
-        enter = button.is_enter();
+        if remote_red_up_state && !ignore_remote {
+            ignore_remote = true;
+            println!("down: remote");
+            set_leds(true, true, "orange");
+            send_to_pc(&socket, target, "kd");
+        } else if !remote_red_up_state && ignore_remote {
+            println!("up: remote");
+            set_leds(true, true, "off");
+            send_to_pc(&socket, target, "ku");
+            ignore_remote = false;
+        }
     }
 }
 
